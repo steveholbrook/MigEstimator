@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNP Migration Duration Estimator - Enhanced v2.0</title>
+    <link href="https://sapui5.hana.ondemand.com/1.108.0/resources/sap-ui-core.css" rel="stylesheet">
+    <style>
+        :root {
+            --sapBrandColor: #0a6ed1;
+            --sapHighlightColor: #0854a0;
+            --sapBaseColor: #fff;
+            --sapShellColor: #354a5f;
+            --sapBackgroundColor: #f7f7f7;
+            --sapTileBackground: #fff;
+            --sapListBackground: #fff;
+            --sapGroup_TitleBackground: #f2f2f2;
+            --sapField_BorderColor: #89919a;
+            --sapButton_Background: #0a6ed1;
+            --sapButton_TextColor: #fff;
+            --sapErrorBackground: #ffeaf4;
+            --sapSuccessBackground: #f1fdf6;
+            --sapTextColor: #32363a;
+            --sapLinkColor: #0a6ed1;
+            --sapSuccessColor: #107e3e;
+            --sapWarningColor: #e9730c;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: "72", "72full", Arial, Helvetica, sans-serif;
+            background-color: var(--sapBackgroundColor);
+            color: var(--sapTextColor);
+            line-height: 1.5;
+        }
+        
+        .sap-shell-header {
+            background-color: var(--sapShellColor);
+            color: white;
+            padding: 0.75rem 2rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .sap-shell-header h1 {
+            font-size: 1.25rem;
+            font-weight: 400;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .version {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+        
+        /* Mode Toggle Switch */
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+        }
+        
+        .mode-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--sapSuccessColor);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .sap-page-title {
+            font-size: 1.75rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+            color: var(--sapTextColor);
+        }
+        
+        .sap-page-subtitle {
+            font-size: 1rem;
+            color: #6a6d70;
+            margin-bottom: 1rem;
+        }
+        
+        /* Mode Badge */
+        .mode-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+        
+        .mode-badge.standard {
+            background-color: #e8f4fd;
+            color: var(--sapBrandColor);
+        }
+        
+        .mode-badge.professional {
+            background-color: #f1e8fd;
+            color: #6a1b9a;
+        }
+        
+        /* Quick Actions Bar */
+        .quick-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .quick-action-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d9d9d9;
+            background: white;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .quick-action-btn:hover {
+            background: #f7f7f7;
+            border-color: var(--sapBrandColor);
+        }
+        
+        .quick-action-btn .icon {
+            font-size: 1rem;
+        }
+        
+        .sap-panel {
+            background-color: var(--sapTileBackground);
+            border: 1px solid #d9d9d9;
+            border-radius: 0.25rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .sap-panel.collapsed .sap-panel-content {
+            display: none;
+        }
+        
+        .sap-panel-header {
+            background-color: var(--sapGroup_TitleBackground);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #d9d9d9;
+            font-weight: 600;
+            font-size: 1.125rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .sap-panel-header:hover {
+            background-color: #e8e8e8;
+        }
+        
+        .collapse-icon {
+            transition: transform 0.3s;
+        }
+        
+        .sap-panel.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .sap-panel-content {
+            padding: 1.5rem;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--sapTextColor);
+            font-size: 0.875rem;
+        }
+        
+        .help-text {
+            font-size: 0.75rem;
+            color: #6a6d70;
+            margin-top: 0.25rem;
+        }
+        
+        .sap-input {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--sapField_BorderColor);
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        
+        .sap-input:focus {
+            outline: none;
+            border-color: var(--sapBrandColor);
+            box-shadow: 0 0 0 0.125rem rgba(10, 110, 209, 0.2);
+        }
+        
+        .sap-button {
+            background-color: var(--sapButton_Background);
+            color: var(--sapButton_TextColor);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        
+        .sap-button:hover {
+            background-color: var(--sapHighlightColor);
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+        }
+        
+        .sap-button.secondary {
+            background-color: white;
+            color: var(--sapBrandColor);
+            border: 1px solid var(--sapBrandColor);
+        }
+        
+        .sap-button.secondary:hover {
+            background-color: #f7f7f7;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        /* Info Box */
+        .info-box {
+            background-color: #e8f4fd;
+            border-left: 4px solid var(--sapBrandColor);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0.25rem;
+        }
+        
+        .info-box.warning {
+            background-color: #fff4ec;
+            border-left-color: var(--sapWarningColor);
+        }
+        
+        .info-box.success {
+            background-color: var(--sapSuccessBackground);
+            border-left-color: var(--sapSuccessColor);
+        }
+        
+        .info-box-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Technology Selector Styles */
+        .tech-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+        
+        .tech-option {
+            position: relative;
+            border: 2px solid #d9d9d9;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+        
+        .tech-option:hover {
+            border-color: var(--sapBrandColor);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .tech-option.selected {
+            border-color: var(--sapBrandColor);
+            background: #e8f4fd;
+        }
+        
+        .tech-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+        
+        .tech-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--sapTextColor);
+        }
+        
+        .tech-description {
+            font-size: 0.875rem;
+            color: #6a6d70;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tech-features {
+            list-style: none;
+            padding: 0;
+            margin-top: 0.5rem;
+        }
+        
+        .tech-features li {
+            font-size: 0.75rem;
+            color: #6a6d70;
+            padding: 0.25rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .tech-features li:before {
+            content: "✓";
+            color: var(--sapSuccessColor);
+            font-weight: bold;
+        }
+        
+        /* Results Section */
+        #results-section {
+            display: none;
+        }
+        
+        #results-section.active {
+            display: block;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .kpi-card {
+            background: white;
+            border: 1px solid #d9d9d9;
+            border-radius: 0.25rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .kpi-label {
+            font-size: 0.875rem;
+            color: #6a6d70;
+            margin-bottom: 0.5rem;
+        }
+        
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 300;
+            color: var(--sapBrandColor);
+        }
+        
+        .kpi-unit {
+            font-size: 0.875rem;
+            color: #6a6d70;
+        }
+        
+        /* Phase Breakdown */
+        .phase-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .phase-table th,
+        .phase-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #d9d9d9;
+        }
+        
+        .phase-table th {
+            background-color: var(--sapGroup_TitleBackground);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .phase-table tr:hover {
+            background-color: #f7f7f7;
+        }
+        
+        /* Downtime Visualization */
+        .downtime-visual {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .downtime-bar-container {
+            flex: 1;
+            height: 40px;
+            background: #f0f0f0;
+            border-radius: 0.25rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .downtime-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--sapSuccessColor), var(--sapWarningColor));
+            border-radius: 0.25rem;
+            transition: width 0.5s ease;
+        }
+        
+        .downtime-text {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        /* Technology Impact Badge */
+        .tech-impact-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        
+        .tech-impact-badge.dts {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .tech-impact-badge.tc {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+        
+        /* Cost Section */
+        .cost-breakdown {
+            background: white;
+            border: 1px solid #d9d9d9;
+            border-radius: 0.25rem;
+            padding: 1.5rem;
+        }
+        
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .cost-label {
+            color: #6a6d70;
+        }
+        
+        .cost-value {
+            font-weight: 600;
+            color: var(--sapTextColor);
+        }
+        
+        /* Timeline */
+        .project-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .timeline-item {
+            background: white;
+            border: 1px solid #d9d9d9;
+            border-left: 4px solid #d9d9d9;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .timeline-item.active {
+            border-left-color: var(--sapBrandColor);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .timeline-header {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .timeline-duration {
+            font-size: 0.875rem;
+            color: var(--sapBrandColor);
+            font-weight: 500;
+        }
+        
+        /* Risk Assessment */
+        .risk-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .risk-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: white;
+            border: 1px solid #d9d9d9;
+            border-radius: 0.25rem;
+        }
+        
+        .risk-indicator {
+            width: 4px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        
+        .risk-indicator.low {
+            background-color: var(--sapSuccessColor);
+        }
+        
+        .risk-indicator.medium {
+            background-color: var(--sapWarningColor);
+        }
+        
+        .risk-indicator.high {
+            background-color: #d32f2f;
+        }
+        
+        .risk-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .risk-description {
+            font-size: 0.875rem;
+            color: #6a6d70;
+        }
+        
+        /* Comparison Section */
+        #comparison-section {
+            display: none;
+        }
+        
+        .comparison-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .comparison-card {
+            background: white;
+            border: 1px solid #d9d9d9;
+            border-radius: 0.25rem;
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+        
+        .comparison-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-card.active {
+            border-color: var(--sapBrandColor);
+        }
+        
+        .comparison-header {
+            font-weight: 600;
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--sapBrandColor);
+        }
+        
+        .comparison-metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .comparison-label {
+            font-size: 0.875rem;
+            color: #6a6d70;
+        }
+        
+        .comparison-value {
+            font-weight: 600;
+        }
+        
+        /* Print Styles */
+        @media print {
+            .sap-shell-header,
+            .quick-actions,
+            .button-group,
+            .sap-button {
+                display: none;
+            }
+            
+            .sap-panel {
+                page-break-inside: avoid;
+                box-shadow: none;
+            }
+            
+            body {
+                background: white;
+            }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tech-selector {
+                grid-template-columns: 1fr;
+            }
+            
+            .sap-shell-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .quick-actions {
+                flex-direction: column;
+            }
+            
+            .quick-action-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sap-shell-header">
+        <h1>🚀 SNP Migration Duration Estimator</h1>
+        <div class="header-right">
+            <div class="mode-toggle">
+                <span class="mode-label">Standard</span>
+                <label class="switch">
+                    <input type="checkbox" id="mode-toggle" onchange="toggleMode()">
+                    <span class="slider"></span>
+                </label>
+                <span class="mode-label">Professional</span>
+            </div>
+            <span class="version">v2.0 Enhanced</span>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Input Section -->
+        <div id="input-section">
+            <h2 class="sap-page-title">
+                Migration Estimation
+                <span class="mode-badge standard" id="mode-badge">STANDARD MODE</span>
+            </h2>
+            <p class="sap-page-subtitle">Configure your migration parameters to generate accurate timeline and resource estimates</p>
+            
+            <div class="quick-actions">
+                <button class="quick-action-btn" onclick="loadPreset('simple')">
+                    <span class="icon">⚡</span> Simple Migration
+                </button>
+                <button class="quick-action-btn" onclick="loadPreset('complex')">
+                    <span class="icon">🔥</span> Complex Migration
+                </button>
+                <button class="quick-action-btn" onclick="loadPreset('shell')">
+                    <span class="icon">🐚</span> Shell Conversion
+                </button>
+                <button class="quick-action-btn" onclick="resetForm()">
+                    <span class="icon">🔄</span> Reset
+                </button>
+            </div>
+            
+            <!-- Global Parameters Panel -->
+            <div class="sap-panel">
+                <div class="sap-panel-header" onclick="togglePanel(this)">
+                    <span>⚙️ Global Parameters</span>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="sap-panel-content">
+                    <div class="info-box">
+                        <div class="info-box-title">🌐 Global Settings</div>
+                        <p>These parameters apply to both Standard and Professional modes and influence the overall project duration and cost calculations.</p>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <!-- Migration Technology Selector -->
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label class="form-label">Migration Technology *</label>
+                            <div class="tech-selector">
+                                <label class="tech-option selected">
+                                    <input type="radio" name="migration_technology" value="DTS" checked onchange="updateTechnologySelection()">
+                                    <div class="tech-title">DTS (Data Transformation Streamlined)</div>
+                                    <div class="tech-description">Fast, standardized data migrations</div>
+                                    <ul class="tech-features">
+                                        <li>Shorter project duration (15-25% faster)</li>
+                                        <li>Near-zero downtime capability</li>
+                                        <li>Ideal for table-based migrations</li>
+                                        <li>Minimal transformation rules</li>
+                                    </ul>
+                                </label>
+                                <label class="tech-option">
+                                    <input type="radio" name="migration_technology" value="TC" onchange="updateTechnologySelection()">
+                                    <div class="tech-title">TC (Transformation Cockpit)</div>
+                                    <div class="tech-description">Complex transformations with flexibility</div>
+                                    <ul class="tech-features">
+                                        <li>Longer project duration (overhead +20-35%)</li>
+                                        <li>Complex rule-based processing</li>
+                                        <li>System harmonizations</li>
+                                        <li>Selective S/4HANA migrations</li>
+                                    </ul>
+                                </label>
+                            </div>
+                            <p class="help-text">Select the migration technology based on your project complexity and requirements</p>
+                        </div>
+                        
+                        <!-- Daily Rate Input -->
+                        <div class="form-group">
+                            <label class="form-label" for="daily_rate">Daily Rate (USD) *</label>
+                            <input type="number" id="daily_rate" class="sap-input" value="1200" min="0" step="50">
+                            <p class="help-text">Average daily rate per consultant for cost calculations</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="project_complexity">Project Complexity *</label>
+                            <select id="project_complexity" class="sap-input">
+                                <option value="low">Low - Standard migration</option>
+                                <option value="medium" selected>Medium - Moderate complexity</option>
+                                <option value="high">High - Complex transformation</option>
+                            </select>
+                            <p class="help-text">Overall project complexity level</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Basic Parameters Panel -->
+            <div class="sap-panel">
+                <div class="sap-panel-header" onclick="togglePanel(this)">
+                    <span>📊 Basic Parameters</span>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="sap-panel-content">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="db_size">Database Size (TB) *</label>
+                            <input type="number" id="db_size" class="sap-input" value="10" min="0.1" step="0.1">
+                            <p class="help-text">Total source database size in terabytes</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="num_objects">Number of Objects *</label>
+                            <input type="number" id="num_objects" class="sap-input" value="5000" min="1">
+                            <p class="help-text">Total tables, programs, and other objects to migrate</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="num_test_cycles">Test Cycles *</label>
+                            <input type="number" id="num_test_cycles" class="sap-input" value="3" min="1" max="10">
+                            <p class="help-text">Number of migration test cycles (typically 2-5)</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="target_downtime">Target Downtime (hours) *</label>
+                            <input type="number" id="target_downtime" class="sap-input" value="8" min="1">
+                            <p class="help-text">Maximum acceptable production downtime</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Professional Mode Parameters -->
+            <div class="sap-panel" id="professional-params" style="display: none;">
+                <div class="sap-panel-header" onclick="togglePanel(this)">
+                    <span>🎯 Professional Parameters</span>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="sap-panel-content">
+                    <div class="info-box warning">
+                        <div class="info-box-title">⚠️ Professional Mode</div>
+                        <p>These advanced parameters provide finer control over the estimation model. Adjust with caution.</p>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="team_size">Team Size</label>
+                            <input type="number" id="team_size" class="sap-input" value="5" min="1" max="50">
+                            <p class="help-text">Number of consultants on the project</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="team_experience">Team Experience</label>
+                            <select id="team_experience" class="sap-input">
+                                <option value="junior">Junior (0-2 years SNP)</option>
+                                <option value="mid" selected>Mid-level (2-5 years)</option>
+                                <option value="senior">Senior (5+ years)</option>
+                            </select>
+                            <p class="help-text">Average team experience level</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="custom_code_percentage">Custom Code %</label>
+                            <input type="number" id="custom_code_percentage" class="sap-input" value="30" min="0" max="100">
+                            <p class="help-text">Percentage of custom vs standard objects</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="data_quality">Data Quality</label>
+                            <select id="data_quality" class="sap-input">
+                                <option value="high">High - Clean data</option>
+                                <option value="medium" selected>Medium - Some issues</option>
+                                <option value="low">Low - Significant cleanup needed</option>
+                            </select>
+                            <p class="help-text">Source data quality assessment</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="integration_complexity">Integration Points</label>
+                            <input type="number" id="integration_complexity" class="sap-input" value="10" min="0">
+                            <p class="help-text">Number of external system integrations</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="hardware_performance">Hardware Performance</label>
+                            <select id="hardware_performance" class="sap-input">
+                                <option value="low">Below Production Spec</option>
+                                <option value="medium" selected>Matches Production</option>
+                                <option value="high">Exceeds Production</option>
+                            </select>
+                            <p class="help-text">Test environment vs production hardware</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="defect_rate">Expected Defect Rate</label>
+                            <select id="defect_rate" class="sap-input">
+                                <option value="low">Low (&lt;5% defects)</option>
+                                <option value="medium" selected>Medium (5-15%)</option>
+                                <option value="high">High (&gt;15%)</option>
+                            </select>
+                            <p class="help-text">Anticipated issue discovery rate</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="uat_duration">UAT Duration (days)</label>
+                            <input type="number" id="uat_duration" class="sap-input" value="14" min="1" max="90">
+                            <p class="help-text">User acceptance testing period</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="contingency_buffer">Contingency Buffer %</label>
+                            <input type="number" id="contingency_buffer" class="sap-input" value="20" min="0" max="50">
+                            <p class="help-text">Risk buffer percentage</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="sap-button" onclick="calculateEstimate()">📊 Calculate Estimate</button>
+                <button class="sap-button secondary" onclick="resetForm()">🔄 Reset All</button>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="results-section">
+            <div class="results-header">
+                <div>
+                    <h2 class="sap-page-title">Migration Estimate Results</h2>
+                    <p class="sap-page-subtitle" id="result-subtitle"></p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="sap-button secondary" onclick="backToInput()">← Back to Input</button>
+                    <button class="sap-button secondary" onclick="addToComparison()">➕ Add to Comparison</button>
+                </div>
+            </div>
+            
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Duration</div>
+                    <div class="kpi-value"><span id="result-total-weeks">0</span> <span class="kpi-unit">weeks</span></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Budget Hours</div>
+                    <div class="kpi-value"><span id="result-total-hours">0</span> <span class="kpi-unit">hrs</span></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Project Cost</div>
+                    <div class="kpi-value">$<span id="result-total-cost">0</span></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Timeline</div>
+                    <div class="kpi-value"><span id="result-timeline">0</span> <span class="kpi-unit">months</span></div>
+                </div>
+            </div>
+            
+            <!-- Technology Impact Info -->
+            <div class="info-box" id="tech-impact-info">
+                <div class="info-box-title">⚙️ Migration Technology Impact</div>
+                <p id="tech-impact-description"></p>
+            </div>
+            
+            <!-- Phase Breakdown Panel -->
+            <div class="sap-panel">
+                <div class="sap-panel-header" onclick="togglePanel(this)">
+                    <span>📋 Phase Breakdown</span>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="sap-panel-content">
+                    <table class="phase-table">
+                        <thead>
+                            <tr>
+                                <th>Phase</th>
+                                <th>Duration (Weeks)</th>
+                                <th>Hours</th>
+                                <th>Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody id="phase-breakdown-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Downtime Prediction Panel -->
+            <div class="sap-panel">
+                <div class="sap-panel-header" onclick="togglePanel(this)">
+                    <span>⏱️ Downtime Prediction</span>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="sap-panel-content">
+                    <div class="downtime-visual">
+                        <div style="min-width: 120px;">
+                            <div style="font-weight: 600; font-size: 1.5rem;" id="downtime-hours">0</div>
+                            <div style="color: #6a6d70; font-size: 0.875rem;">Predicted Hours</div>
+                        </div>
+                        <div class="downtime-bar-container">
+                            <div class="downtime-bar" id="downtime-bar" style="width: 0%">
+                                <span class="downtime-text" id="downtime-percentage">0%</span>
+                            </div>
+                        </div>
+                        <div style="min-width: 120px; text-align: right;">
+                            <div style="font-weight: 600; font-size: 1.5rem;" id="target-hours">0</div>
+                            <div style="color: #6a6d70; font-size: 0.875rem;">Target Hours</div>
+                        </div>
+                    </div>
+                    <div id="downtime-status"></div>
+                </div>
+            </div>
+            
+            <!-- Project Timeline Panel -->
+            <div class="sap-panel">
+                <div class="sap-panel-header" onclick="togglePanel(this)">
+                    <span>📅 Project Timeline</span>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="sap-panel-content">
+                    <div class="project-timeline" id="project-timeline"></div>
+                </div>
+            </div>
+            
+            <!-- Risk Assessment Panel -->
+            <div class="sap-panel">
+                <div class="sap-panel-header" onclick="togglePanel(this)">
+                    <span>⚠️ Risk Assessment</span>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="sap-panel-content">
+                    <div class="risk-grid" id="risk-grid"></div>
+                </div>
+            </div>
+            
+            <!-- Export Options -->
+            <div class="button-group">
+                <button class="sap-button" onclick="exportToJSON()">💾 Export JSON</button>
+                <button class="sap-button secondary" onclick="exportToPDF()">📄 Export PDF</button>
+                <button class="sap-button secondary" onclick="showComparison()">📊 View Comparison</button>
+            </div>
+        </div>
+        
+        <!-- Comparison Section -->
+        <div id="comparison-section">
+            <div class="results-header">
+                <h2 class="sap-page-title">Scenario Comparison</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="sap-button secondary" onclick="hideComparison()">← Back to Results</button>
+                    <button class="sap-button secondary" onclick="clearComparison()">🗑️ Clear All</button>
+                </div>
+            </div>
+            <div class="comparison-container" id="comparison-container"></div>
+        </div>
+    </div>
+    
+    <script>
+        let currentMode = 'standard';
+        let currentResults = null;
+        let comparisonScenarios = [];
+        
+        // Toggle between Standard and Professional modes
+        function toggleMode() {
+            const toggle = document.getElementById('mode-toggle');
+            const badge = document.getElementById('mode-badge');
+            const professionalParams = document.getElementById('professional-params');
+            
+            if (toggle.checked) {
+                currentMode = 'professional';
+                badge.textContent = 'PROFESSIONAL MODE';
+                badge.className = 'mode-badge professional';
+                professionalParams.style.display = 'block';
+            } else {
+                currentMode = 'standard';
+                badge.textContent = 'STANDARD MODE';
+                badge.className = 'mode-badge standard';
+                professionalParams.style.display = 'none';
+            }
+        }
+        
+        // Update technology selection visual
+        function updateTechnologySelection() {
+            const options = document.querySelectorAll('.tech-option');
+            options.forEach(option => {
+                const radio = option.querySelector('input[type="radio"]');
+                if (radio.checked) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+        }
+        
+        // Toggle panel collapse
+        function togglePanel(header) {
+            header.parentElement.classList.toggle('collapsed');
+        }
+        
+        // Load preset configurations
+        function loadPreset(type) {
+            switch(type) {
+                case 'simple':
+                    document.getElementById('db_size').value = 5;
+                    document.getElementById('num_objects').value = 2000;
+                    document.getElementById('num_test_cycles').value = 2;
+                    document.getElementById('project_complexity').value = 'low';
+                    document.querySelector('input[value="DTS"]').checked = true;
+                    break;
+                case 'complex':
+                    document.getElementById('db_size').value = 20;
+                    document.getElementById('num_objects').value = 10000;
+                    document.getElementById('num_test_cycles').value = 5;
+                    document.getElementById('project_complexity').value = 'high';
+                    document.querySelector('input[value="TC"]').checked = true;
+                    break;
+                case 'shell':
+                    document.getElementById('db_size').value = 15;
+                    document.getElementById('num_objects').value = 7000;
+                    document.getElementById('num_test_cycles').value = 4;
+                    document.getElementById('project_complexity').value = 'medium';
+                    document.querySelector('input[value="TC"]').checked = true;
+                    break;
+            }
+            updateTechnologySelection();
+        }
+        
+        // Get input values
+        function getInputs() {
+            const inputs = {
+                migration_technology: document.querySelector('input[name="migration_technology"]:checked').value,
+                daily_rate: parseFloat(document.getElementById('daily_rate').value),
+                db_size: parseFloat(document.getElementById('db_size').value),
+                num_objects: parseInt(document.getElementById('num_objects').value),
+                num_test_cycles: parseInt(document.getElementById('num_test_cycles').value),
+                target_downtime: parseFloat(document.getElementById('target_downtime').value),
+                project_complexity: document.getElementById('project_complexity').value
+            };
+            
+            if (currentMode === 'professional') {
+                inputs.team_size = parseInt(document.getElementById('team_size').value);
+                inputs.team_experience = document.getElementById('team_experience').value;
+                inputs.custom_code_percentage = parseInt(document.getElementById('custom_code_percentage').value);
+                inputs.data_quality = document.getElementById('data_quality').value;
+                inputs.integration_complexity = parseInt(document.getElementById('integration_complexity').value);
+                inputs.hardware_performance = document.getElementById('hardware_performance').value;
+                inputs.defect_rate = document.getElementById('defect_rate').value;
+                inputs.uat_duration = parseInt(document.getElementById('uat_duration').value);
+                inputs.contingency_buffer = parseInt(document.getElementById('contingency_buffer').value);
+            }
+            
+            return inputs;
+        }
+        
+        // Main calculation function
+        function calculateEstimate() {
+            const inputs = getInputs();
+            
+            // Base calculation factors
+            const complexityMultipliers = {
+                'low': 0.8,
+                'medium': 1.0,
+                'high': 1.3
+            };
+            
+            // Technology-specific multipliers
+            const techMultipliers = {
+                'DTS': {
+                    duration: 0.80,  // 20% faster
+                    description: 'DTS offers faster execution with minimal overhead, reducing overall project duration by approximately 20%. Optimized for standardized migrations with near-zero downtime capability.'
+                },
+                'TC': {
+                    duration: 1.25,  // 25% slower
+                    description: 'TC involves additional overhead due to complex rule-based processing and program generation. This increases project duration by approximately 25% but provides flexibility for complex transformations and system harmonizations.'
+                }
+            };
+            
+            const complexityFactor = complexityMultipliers[inputs.project_complexity];
+            const techFactor = techMultipliers[inputs.migration_technology].duration;
+            
+            // Phase calculations with technology impact
+            let phases = [];
+            
+            // 1. Project Initiation & Planning
+            let planningWeeks = (2 + (inputs.db_size / 10) * 0.5) * complexityFactor;
+            phases.push({
+                name: 'Project Initiation & Planning',
+                weeks: planningWeeks,
+                hours: planningWeeks * 40 * (currentMode === 'professional' ? inputs.team_size : 3),
+                description: 'Project setup, requirements gathering, team onboarding'
+            });
+            
+            // 2. Solution Design - TC requires more design time
+            let designWeeks = (3 + (inputs.num_objects / 1000) * 0.3) * complexityFactor;
+            if (inputs.migration_technology === 'TC') {
+                designWeeks *= 1.15; // 15% more design time for TC
+            }
+            phases.push({
+                name: 'Solution Design',
+                weeks: designWeeks,
+                hours: designWeeks * 40 * (currentMode === 'professional' ? inputs.team_size : 3),
+                description: 'Architecture design, mapping rules definition, technical specifications'
+            });
+            
+            // 3. Development & Configuration - Major technology impact
+            let devWeeks = (4 + (inputs.num_objects / 500) * 0.5 + (inputs.db_size / 5) * 0.3) * complexityFactor * techFactor;
+            phases.push({
+                name: 'Development & Configuration',
+                weeks: devWeeks,
+                hours: devWeeks * 40 * (currentMode === 'professional' ? inputs.team_size : 4),
+                description: 'Build migration programs, configure transformation rules, prepare environments'
+            });
+            
+            // 4. Testing Cycles - Technology impacts each cycle
+            let testCycleWeeks = inputs.num_test_cycles * (2 + (inputs.db_size / 10) * 0.4) * complexityFactor * techFactor;
+            phases.push({
+                name: 'Testing & Validation',
+                weeks: testCycleWeeks,
+                hours: testCycleWeeks * 40 * (currentMode === 'professional' ? inputs.team_size : 5),
+                description: `${inputs.num_test_cycles} test cycles including data validation and reconciliation`
+            });
+            
+            // 5. UAT & Business Validation
+            let uatWeeks = (currentMode === 'professional' ? inputs.uat_duration / 7 : 2) * complexityFactor;
+            phases.push({
+                name: 'UAT & Business Validation',
+                weeks: uatWeeks,
+                hours: uatWeeks * 40 * (currentMode === 'professional' ? Math.ceil(inputs.team_size * 0.6) : 3),
+                description: 'User acceptance testing and business process validation'
+            });
+            
+            // 6. Go-Live Preparation
+            let goLiveWeeks = (1.5 + (inputs.db_size / 20) * 0.2) * complexityFactor;
+            phases.push({
+                name: 'Go-Live Preparation',
+                weeks: goLiveWeeks,
+                hours: goLiveWeeks * 40 * (currentMode === 'professional' ? inputs.team_size : 4),
+                description: 'Final go-live simulation, cutover planning, production readiness'
+            });
+            
+            // 7. Production Cutover & Support
+            let cutoverWeeks = 1.5 * complexityFactor;
+            phases.push({
+                name: 'Production Cutover & Support',
+                weeks: cutoverWeeks,
+                hours: cutoverWeeks * 40 * (currentMode === 'professional' ? inputs.team_size : 5),
+                description: 'Production migration execution and hypercare support'
+            });
+            
+            // Apply professional mode adjustments
+            if (currentMode === 'professional') {
+                // Team experience impact
+                const experienceMultipliers = { 'junior': 1.3, 'mid': 1.0, 'senior': 0.85 };
+                const expFactor = experienceMultipliers[inputs.team_experience];
+                
+                // Data quality impact
+                const qualityMultipliers = { 'high': 0.9, 'medium': 1.0, 'low': 1.25 };
+                const qualityFactor = qualityMultipliers[inputs.data_quality];
+                
+                // Apply adjustments
+                phases = phases.map(phase => ({
+                    ...phase,
+                    weeks: phase.weeks * expFactor * qualityFactor,
+                    hours: phase.hours * expFactor * qualityFactor
+                }));
+                
+                // Add contingency buffer
+                const contingencyMultiplier = 1 + (inputs.contingency_buffer / 100);
+                phases = phases.map(phase => ({
+                    ...phase,
+                    weeks: phase.weeks * contingencyMultiplier,
+                    hours: phase.hours * contingencyMultiplier
+                }));
+            }
+            
+            // Calculate totals
+            const totalWeeks = phases.reduce((sum, phase) => sum + phase.weeks, 0);
+            const totalHours = phases.reduce((sum, phase) => sum + phase.hours, 0);
+            const totalDays = totalWeeks * 5;
+            const totalCost = totalDays * inputs.daily_rate;
+            
+            // Downtime prediction with technology impact
+            let predictedDowntime = (inputs.db_size * 0.5) + (inputs.num_objects / 1000);
+            
+            // DTS significantly reduces downtime
+            if (inputs.migration_technology === 'DTS') {
+                predictedDowntime *= 0.65; // 35% reduction with DTS
+            } else {
+                predictedDowntime *= 1.1; // 10% increase with TC
+            }
+            
+            if (currentMode === 'professional') {
+                const hwMultipliers = { 'low': 1.4, 'medium': 1.0, 'high': 0.8 };
+                predictedDowntime *= hwMultipliers[inputs.hardware_performance];
+            }
+            
+            // Store results
+            currentResults = {
+                inputs: inputs,
+                phases: phases,
+                total_weeks: totalWeeks,
+                total_hours: totalHours,
+                total_days: totalDays,
+                total_cost: totalCost,
+                total_months: (totalWeeks / 4.33).toFixed(1),
+                predicted_downtime: predictedDowntime,
+                technology_factor: techFactor,
+                technology_description: techMultipliers[inputs.migration_technology].description
+            };
+            
+            // Display results
+            displayResults(currentResults);
+        }
+        
+        // Display results
+        function displayResults(results) {
+            // Show results section
+            document.getElementById('input-section').style.display = 'none';
+            document.getElementById('results-section').classList.add('active');
+            
+            // Update subtitle
+            const tech = results.inputs.migration_technology;
+            document.getElementById('result-subtitle').innerHTML = `
+                Generated using ${currentMode.toUpperCase()} mode with ${tech}
+                <span class="tech-impact-badge ${tech.toLowerCase()}">${tech}</span>
+            `;
+            
+            // Update KPIs
+            document.getElementById('result-total-weeks').textContent = Math.round(results.total_weeks);
+            document.getElementById('result-total-hours').textContent = Math.round(results.total_hours).toLocaleString();
+            document.getElementById('result-total-cost').textContent = Math.round(results.total_cost).toLocaleString();
+            document.getElementById('result-timeline').textContent = results.total_months;
+            
+            // Technology impact info
+            const techInfo = document.getElementById('tech-impact-info');
+            techInfo.className = results.inputs.migration_technology === 'DTS' ? 'info-box success' : 'info-box warning';
+            document.getElementById('tech-impact-description').textContent = results.technology_description;
+            
+            // Phase breakdown
+            displayPhaseBreakdown(results);
+            
+            // Downtime prediction
+            displayDowntimePrediction(results);
+            
+            // Timeline
+            displayTimeline(results.phases);
+            
+            // Risk assessment
+            displayRiskAssessment(results);
+            
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+        
+        // Display phase breakdown
+        function displayPhaseBreakdown(results) {
+            const tbody = document.getElementById('phase-breakdown-body');
+            const dailyRate = results.inputs.daily_rate;
+            
+            tbody.innerHTML = results.phases.map((phase, idx) => {
+                const phaseCost = (phase.weeks * 5 * dailyRate);
+                return `
+                    <tr>
+                        <td><strong>${idx + 1}. ${phase.name}</strong></td>
+                        <td>${phase.weeks.toFixed(1)}</td>
+                        <td>${Math.round(phase.hours).toLocaleString()}</td>
+                        <td>$${Math.round(phaseCost).toLocaleString()}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Add total row
+            tbody.innerHTML += `
+                <tr style="background-color: #f7f7f7; font-weight: 600;">
+                    <td>TOTAL</td>
+                    <td>${results.total_weeks.toFixed(1)}</td>
+                    <td>${Math.round(results.total_hours).toLocaleString()}</td>
+                    <td>$${Math.round(results.total_cost).toLocaleString()}</td>
+                </tr>
+            `;
+        }
+        
+        // Display downtime prediction
+        function displayDowntimePrediction(results) {
+            const predicted = results.predicted_downtime;
+            const target = results.inputs.target_downtime;
+            const percentage = Math.min((predicted / target) * 100, 100);
+            
+            document.getElementById('downtime-hours').textContent = predicted.toFixed(1);
+            document.getElementById('target-hours').textContent = target;
+            document.getElementById('downtime-bar').style.width = percentage + '%';
+            document.getElementById('downtime-percentage').textContent = percentage.toFixed(0) + '%';
+            
+            const statusDiv = document.getElementById('downtime-status');
+            if (predicted <= target * 0.8) {
+                statusDiv.innerHTML = `
+                    <div class="info-box success" style="margin-top: 1rem;">
+                        <div class="info-box-title">✅ Excellent - Well within target</div>
+                        <p>Predicted downtime is ${(target - predicted).toFixed(1)} hours below target. Good margin for contingency.</p>
+                    </div>
+                `;
+            } else if (predicted <= target) {
+                statusDiv.innerHTML = `
+                    <div class="info-box" style="margin-top: 1rem;">
+                        <div class="info-box-title">✓ Good - Within acceptable range</div>
+                        <p>Predicted downtime meets target with ${(target - predicted).toFixed(1)} hours buffer.</p>
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="info-box warning" style="margin-top: 1rem;">
+                        <div class="info-box-title">⚠️ Risk - Exceeds target</div>
+                        <p>Predicted downtime exceeds target by ${(predicted - target).toFixed(1)} hours. Consider optimization strategies or adjust expectations.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Display timeline
+        function displayTimeline(phases) {
+            const timeline = document.getElementById('project-timeline');
+            let cumulativeWeeks = 0;
+            
+            timeline.innerHTML = phases.map((phase, idx) => {
+                cumulativeWeeks += phase.weeks;
+                return `
+                    <div class="timeline-item ${idx === 0 ? 'active' : ''}">
+                        <div class="timeline-header">${phase.name}</div>
+                        <div class="timeline-duration">${phase.weeks.toFixed(1)} weeks (Weeks ${Math.round(cumulativeWeeks - phase.weeks + 1)}-${Math.round(cumulativeWeeks)})</div>
+                        <p style="font-size: 0.875rem; color: #6a6d70; margin-top: 0.25rem;">${phase.description}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Display risk assessment
+        function displayRiskAssessment(results) {
+            const risks = [];
+            
+            // Technology-specific risks
+            if (results.inputs.migration_technology === 'TC') {
+                risks.push({
+                    level: 'medium',
+                    title: 'TC Complexity Overhead',
+                    description: 'Using Transformation Cockpit adds 25% overhead due to rule-based processing and program generation. Ensure adequate testing time is allocated.'
+                });
+            } else {
+                risks.push({
+                    level: 'low',
+                    title: 'DTS Efficiency Advantage',
+                    description: 'DTS reduces project duration by ~20% and offers near-zero downtime capability for standardized migrations.'
+                });
+            }
+            
+            // Database size risks
+            if (results.inputs.db_size > 20) {
+                risks.push({
+                    level: 'high',
+                    title: 'Large Database Volume',
+                    description: 'Database exceeds 20TB. Ensure adequate test hardware and consider data archiving to reduce migration time.'
+                });
+            }
+            
+            // Hardware performance risks
+            if (currentMode === 'professional' && results.inputs.hardware_performance === 'low') {
+                risks.push({
+                    level: 'high',
+                    title: 'Under-resourced Test Environment',
+                    description: 'Test hardware does not match production. Downtime estimates may be inaccurate. Upgrade test systems before Go-Live Simulation.'
+                });
+            }
+            
+            // Defect rate risks
+            if (currentMode === 'professional' && results.inputs.defect_rate === 'high') {
+                risks.push({
+                    level: 'medium',
+                    title: 'High Expected Defect Rate',
+                    description: 'Consider additional test cycles and allocate extra time for defect resolution. Strengthen requirements gathering.'
+                });
+            }
+            
+            // Test cycle risks
+            if (results.inputs.num_test_cycles < 3) {
+                risks.push({
+                    level: 'medium',
+                    title: 'Limited Test Cycles',
+                    description: 'Less than 3 test cycles may not provide sufficient validation. Consider adding an additional cycle for complex migrations.'
+                });
+            }
+            
+            // UAT duration risks
+            if (currentMode === 'professional' && results.inputs.uat_duration < 7) {
+                risks.push({
+                    level: 'medium',
+                    title: 'Short UAT Duration',
+                    description: 'Limited time for user acceptance testing may lead to undiscovered issues. Ensure test coverage is comprehensive.'
+                });
+            }
+            
+            // Downtime risks
+            if (results.predicted_downtime < results.inputs.target_downtime * 0.8) {
+                risks.push({
+                    level: 'low',
+                    title: 'Comfortable Downtime Window',
+                    description: 'Predicted downtime is well within target. Good margin for contingency during production cutover.'
+                });
+            }
+            
+            if (risks.length === 0) {
+                risks.push({
+                    level: 'low',
+                    title: 'Well-Configured Project',
+                    description: 'Project parameters appear well-balanced. Continue following SNP best practices for optimal outcomes.'
+                });
+            }
+            
+            const grid = document.getElementById('risk-grid');
+            grid.innerHTML = risks.map(risk => `
+                <div class="risk-item">
+                    <div class="risk-indicator ${risk.level}"></div>
+                    <div class="risk-content">
+                        <div class="risk-title">${risk.title}</div>
+                        <div class="risk-description">${risk.description}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Comparison functions
+        function addToComparison() {
+            if (!currentResults) {
+                alert('Please calculate an estimate first');
+                return;
+            }
+            
+            const name = prompt('Enter a name for this scenario:', `Scenario ${comparisonScenarios.length + 1}`);
+            if (!name) return;
+            
+            comparisonScenarios.push({
+                name: name,
+                results: { ...currentResults }
+            });
+            
+            alert(`✅ Added to comparison (${comparisonScenarios.length} scenarios total)`);
+        }
+        
+        function showComparison() {
+            if (comparisonScenarios.length === 0) {
+                alert('No scenarios to compare. Add scenarios using "Add to Comparison" button after calculating estimates.');
+                return;
+            }
+            
+            const container = document.getElementById('comparison-container');
+            container.innerHTML = comparisonScenarios.map((scenario, idx) => {
+                const r = scenario.results;
+                return `
+                    <div class="comparison-card ${idx === 0 ? 'active' : ''}">
+                        <div class="comparison-header">${scenario.name}</div>
+                        <div class="comparison-metric">
+                            <span class="comparison-label">Technology</span>
+                            <span class="comparison-value">${r.inputs.migration_technology}</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="comparison-label">Total Duration</span>
+                            <span class="comparison-value">${Math.round(r.total_weeks)} weeks</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="comparison-label">Budget Hours</span>
+                            <span class="comparison-value">${Math.round(r.total_hours)} hrs</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="comparison-label">Project Cost</span>
+                            <span class="comparison-value">$${Math.round(r.total_cost).toLocaleString()}</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="comparison-label">Timeline</span>
+                            <span class="comparison-value">${r.total_months} months</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="comparison-label">Test Cycles</span>
+                            <span class="comparison-value">${r.inputs.num_test_cycles} cycles</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="comparison-label">Complexity</span>
+                            <span class="comparison-value">${r.inputs.project_complexity}</span>
+                        </div>
+                        <div class="comparison-metric">
+                            <span class="comparison-label">Predicted Downtime</span>
+                            <span class="comparison-value">${r.predicted_downtime.toFixed(1)} hrs</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('results-section').classList.remove('active');
+            document.getElementById('comparison-section').style.display = 'block';
+        }
+        
+        function hideComparison() {
+            document.getElementById('comparison-section').style.display = 'none';
+            document.getElementById('results-section').classList.add('active');
+        }
+        
+        function clearComparison() {
+            if (confirm('Clear all comparison scenarios?')) {
+                comparisonScenarios = [];
+                hideComparison();
+                alert('✅ Comparison cleared');
+            }
+        }
+        
+        // Export functions
+        function resetForm() {
+            if (confirm('Are you sure you want to reset all inputs to default values?')) {
+                location.reload();
+            }
+        }
+        
+        function backToInput() {
+            document.getElementById('results-section').classList.remove('active');
+            document.getElementById('input-section').style.display = 'block';
+            window.scrollTo(0, 0);
+        }
+        
+        function exportToJSON() {
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                methodology: 'SNP Empirical Approach v2.0 Enhanced',
+                mode: currentMode,
+                inputs: currentResults.inputs,
+                results: currentResults
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `snp-migration-estimate-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function exportToPDF() {
+            alert('📄 PDF export functionality: Use your browser\'s Print to PDF feature (Ctrl/Cmd+P) for now. Full PDF export coming in next update!');
+            window.print();
+        }
+    </script>
+</body>
+</html>
